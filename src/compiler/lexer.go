@@ -100,12 +100,12 @@ func (S *Lexer) NextToken() *Token {
             case ':': S.Consume(); return &Token{tokenType: COLON,text:":"}
             default:
                 if S.isLetter() {
-                    return S.IDENTIFIER()
+                    return S.KeywordOrIdent()
                 }
                 S.error("invalid character " + strconv.Itoa(S.ch))
         }
     }
-    return nil
+    return &Token{tokenType:EOF,text:"<EOF>"}
 }
 
 func (S *Lexer) isLetter() bool {
@@ -121,7 +121,7 @@ func (S *Lexer) LETTER() {
     }
 }
 
-func (S *Lexer) IDENTIFIER() *Token {
+func (S *Lexer) KeywordOrIdent() *Token {
     buf := util.NewStringBuffer()
     for S.isLetter()  {
         buf.Append(S.ch); S.LETTER()
@@ -149,11 +149,21 @@ func (S *Lexer) IDENTIFIER() *Token {
 }
 
 func (S *Lexer) WS() {
-
+    for S.ch ==' ' || S.ch =='\t' {
+        S.advance()
+    }
 }
 
 func (S *Lexer) EOL() *Token {
-    return nil
+    if S.ch == '\r' {      // CR
+        S.Consume()
+        if S.ch == '\n' { // CRLF
+            S.Consume()
+        }
+    } else if S.ch == '\n' {  // LF
+        S.Consume()
+    }
+    return &Token{tokenType: EOL, text:"<EOL>"}
 }
 
 func (S *Lexer) error(msg string) {

@@ -12,4 +12,9 @@ func TestStringBuffer(t *testing.T) {
     if b.String() != s {
         t.Fatalf("string buffer error")
     }
+   
+    b.AppendStr("xyz")
+    if b.String() != "abcกขคxyz" {
+        t.Fatalf("string buffer error")
+    }
 }

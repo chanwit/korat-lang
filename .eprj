@@ -17,5 +17,10 @@
             <key>includeFiles</key>
             <array />
         </dict>
+        <key>fileTriggers</key>
+        <dict>
+            <key>par</key>
+            <string>src\compiler\parser.go</string>
+        </dict>
     </dict>
 </plist>
