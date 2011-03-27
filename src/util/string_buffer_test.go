@@ -1,10 +1,10 @@
-package korat_test
+package util_test
 
 import "testing"
-import "korat"
+import "util"
 
 func TestStringBuffer(t *testing.T) {
-    b := korat.NewStringBuffer()
+    b := util.NewStringBuffer()
     s := "abcกขค" 
     for _,ch := range s {
         b.Append(ch)

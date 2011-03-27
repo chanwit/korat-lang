@@ -1,15 +1,14 @@
-package korat_test
+package compiler_test
 
 import "testing"
 
 import "utf8"
 import "strconv"
 // import "fmt"
-
-import "korat"
+import "compiler"
 
 func TestInitLexer(t *testing.T) {
-    l := new(korat.Lexer).Init("package a")
+    l := new(compiler.Lexer).Init("package a")
 
     if l.GetInput() != "package a" {
         t.Fatalf("l.input failed")
@@ -22,10 +21,9 @@ func TestInitLexer(t *testing.T) {
     }
 }
 
-func TestConsume(t *testing.T) {
-    
+func TestConsume(t *testing.T) {   
     s := "package นี้"
-    l := new(korat.Lexer).Init(s)
+    l := new(compiler.Lexer).Init(s)
     if l.GetInput() != "package นี้" {
         t.Fatalf("l.input failed")
     }    
@@ -40,16 +38,16 @@ func TestConsume(t *testing.T) {
         }        
         l.Consume()        
     }
-    if l.GetCh() != korat.EOF {
+    if l.GetCh() != compiler.EOF {
         t.Fatalf("EOF not found")
     }       
 }
 
 func TestToken(t *testing.T) {
-    l := new(korat.Lexer).Init("package")
+    l := new(compiler.Lexer).Init("package")
     tok := l.NextToken()
     // fmt.Printf("%s\n", tok)
-    if tok.GetTokenType() != korat.PACKAGE {
+    if tok.GetTokenType() != compiler.PACKAGE {
         t.Fatalf("Fail : PACKAGE not found")
     }
 }

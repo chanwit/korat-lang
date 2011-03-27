@@ -1,4 +1,4 @@
-package korat
+package compiler
 
 import "strconv"
 
@@ -36,11 +36,11 @@ const (
     DOT
     EOL
     FINAL
+    IDENT    
     IMPORT
     LCURL
     LPAR
     MATCH
-    NAME
     NATIVE
     PACKAGE
     PROTECTED
@@ -73,12 +73,12 @@ var tokens = map[TokenType]string{
     DEFAULT:  "default",
     DOT:      ".",
     FINAL:    "final",
+    IDENT:    "<IDENT>",
+        
     IMPORT:   "import",
-
     LCURL:    "{",
     LPAR:     "(",
     MATCH:    "match",
-    NAME:     "<NAME>",
     NATIVE:   "native",
 
     PACKAGE:   "package",

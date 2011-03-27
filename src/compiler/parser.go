@@ -1,3 +1,3 @@
-package korat
+package compiler
 
 const PARSER = 1

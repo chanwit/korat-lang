@@ -1,4 +1,4 @@
-package korat
+package util
 
 import "utf8"
 //import "fmt"
