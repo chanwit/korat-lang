@@ -100,7 +100,7 @@ func (this *Parser) AlreadyParsedRule(memoization map[int]*int) bool {
         return false
     }
     if *memoI == FAILED {
-        // error 
+        panic("*memoI == FAILED")
     }
     this.Seek(*memoI)
     return true
