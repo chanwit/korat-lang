@@ -363,6 +363,10 @@ func (this *Parser) QnameForImport() *Node {
     return NewNode2("QNAME", sb.String())
 }
 
+
+//
+// annotations: annotation*
+//
 func (this *Parser) Annotations() *Node {
     anns := []*Node{}
     anns = append(anns, this.Annotation())

@@ -3,6 +3,8 @@ package compiler_test
 import "testing"
 import "compiler"
 
+import "fmt"
+
 func TestParsingPackage(t *testing.T) {
     lexer  := new(compiler.Lexer).Init("package a.b.c")
     parser := new(compiler.Parser).Init(lexer)
@@ -56,6 +58,7 @@ func TestTypeWithMainMethod(t *testing.T) {
     "}\n")
     parser := new(compiler.Parser).Init(lexer)
     node   := parser.TypeDecl()
+    fmt.Printf("%s\n", node)
     if node.Name != "CLASS" {
         t.Fatalf("CLASS not parsed")
     }
