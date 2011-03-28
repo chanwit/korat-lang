@@ -281,9 +281,7 @@ func (this *Parser) MethodBodyDecl() *Node {
 
 func (this *Parser) Modifiers() *Node {
     m := []*Node{}
-    for {
-        _,ok := modifiers[this.LA(1)]
-        if(!ok) { break }
+    for modifiers[this.LA(1)] == true {
         m = append(m, this.Modifier())
     }
     return NewNode1("MODIFIERS", m)
