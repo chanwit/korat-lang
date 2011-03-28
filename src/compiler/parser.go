@@ -1,8 +1,8 @@
 package compiler
 
 import "container/vector"
-import "ast"
 import "util"
+import . "ast"
 
 // import "fmt"
 
@@ -12,6 +12,7 @@ type Parser struct {
     input     *Lexer
     lookahead *vector.Vector
     markers   *vector.Vector
+    listMemo  map[int]*int
     p         int
 }
 
@@ -28,9 +29,13 @@ func (this *Parser) Consume() {
     if this.p == this.lookahead.Len() && !this.IsSpeculating() {
         this.p = 0
         this.lookahead = new(vector.Vector)
-        // this.clearMemo()
+        this.clearMemo()
     }
     this.sync(1)
+}
+
+func (this *Parser) clearMemo() {
+    this.listMemo = map[int]*int{};
 }
 
 func (this *Parser) sync(i int) {
@@ -66,11 +71,11 @@ func (this *Parser) LA(i int) TokenType {
     return this.LT(i).tokenType
 }
 
-func (this *Parser) Match(x TokenType) *Token {
-    t := this.LT(1)
+func (this *Parser) Match(x TokenType) (t *Token) {
+    t = this.LT(1)
     if t.tokenType == x {
         this.Consume()
-        return t
+        return
     }
     panic("Token not match. Found:" + t.tokenType.String() + ", Expect: " + tokens[x])
 }
@@ -108,18 +113,269 @@ func (this *Parser) AlreadyParsedRule(memoization map[int]*int) bool {
 
 func (this *Parser) Index() int { return this.p }
 
-func (this *Parser) PackageDecl() *ast.Node {
-    this.Match(PACKAGE)
-    qname := this.QNAME()
-    return &ast.Node{Name:"PACKAGE", Children:[]ast.Node{*qname}}
+//
+// Production Rules
+//
+//
+func (this *Parser) CompilationUnit() *Node {
+    for this.LA(1) == EOL { this.Match(EOL) }
+    if  this.LA(1) == AT && this.LA(2) == IDENT {
+        // TODO: annotations()
+    }
+    if  this.LA(1) == PACKAGE {
+        packageDecl := this.PackageDecl()
+        return NewNode0("UNIT", packageDecl)
+    }
+    if  this.LA(1) == IMPORT {
+        this.ImportDecls()
+    }
+    this.TypeDecls()
+    return nil
 }
 
-func (this *Parser) QNAME() *ast.Node {
+func (this *Parser) PackageDecl() *Node {
+    this.Match(PACKAGE)
+    qname := this.QNAME()
+    return NewNode0("PACKAGE", qname)
+}
+
+func (this *Parser) ImportDecls() *Node {
+    for this.LA(1)==SEMI || this.LA(1)==EOL {
+        // this.semiOrEol()
+    }
+    imports := []*Node{}
+    imports = append(imports, this.ImportDecl())
+    for this.LA(1) == IMPORT {
+        imports = append(imports, this.ImportDecl())
+    }
+    return NewNode1("IMPORTS", imports)
+}
+
+func (this *Parser) ImportDecl() *Node {
+    this.Match(IMPORT)
+    foundStatic := false
+    if this.LA(1) == STATIC {
+        foundStatic = true
+        this.Match(STATIC)
+    }
+    qname := this.QnameForImport()
+    this.semiOrEol()
+    if foundStatic {
+        return NewNode0("IMPORT_STATIC", qname)
+    }
+    return NewNode0("IMPORT", qname)
+}
+
+func (this *Parser) TypeDecls() *Node {
+    return nil
+}
+
+func (this *Parser) IDENT() *Node {
+    return NewNode2("IDENT", this.Match(IDENT).text)
+}
+
+// typeDecl: 'class' name '{' '}'
+func (this *Parser) TypeDecl() *Node {
+    for this.LA(1)==EOL { this.Match(EOL) }
+
+    caseClass := false
+
+    if this.LA(1) == CASE {
+        caseClass = true
+        this.Match(CASE)
+    }
+    this.Match(CLASS)
+    name := this.IDENT(); for this.LA(1)==EOL { this.Match(EOL) }
+    this.Match(LCURL)
+    members := this.Members()
+    this.Match(RCURL)
+
+    if(caseClass) {
+        return NewNode0("CASE_CLASS", name, members)
+    }
+    return NewNode0("CLASS", name, members)
+}
+
+func (this *Parser) semiOrEol() {
+    switch this.LA(1)  {
+        case SEMI: this.Match(SEMI); return
+        case EOL:  this.Match(EOL);  return
+        case EOF:  this.Match(EOF);  return
+    }
+    panic("Expect semi-colon or EOL")
+}
+
+func (this *Parser) Members() *Node {
+    members := []*Node{}
+    for this.LA(1)==SEMI || this.LA(1)==EOL {
+        this.semiOrEol()
+    }
+    for this.LA(1) != RCURL {
+        members = append(members, this.MemberDecl())
+    }
+
+    for this.LA(1)==EOL { this.Match(EOL) }
+
+    return NewNode1("MEMBERS", members)
+}
+
+func (this *Parser) MemberDecl() *Node {
+    //if(LA(1) in MODIFIER_LIST)
+    //fieldDecl()
+    return this.MethodDecl()
+}
+
+func (this *Parser) MethodDecl() *Node  {
+    for this.LA(1)==EOL { this.Match(EOL) }
+
+    modifiers := this.Modifiers()
+
+    var returnType *Node = nil
+    if this.LA(2) == IDENT {
+        returnType = this.Type()
+    }
+    methodName := this.IDENT()
+
+    this.Match(LPAR)
+    argDecls := this.ArgumentDecls()
+    this.Match(RPAR);  for this.LA(1)==EOL { this.Match(EOL) }
+
+    var body *Node = nil
+    if this.LA(1) == LCURL {
+        body = this.MethodBodyDecl()
+    }
+
+    for this.LA(1)==SEMI || this.LA(1)==EOL { this.semiOrEol() }
+
+    if body == nil {
+        return NewNode0("INTERFACE_METHOD", modifiers, returnType, methodName, argDecls)
+    }
+    return NewNode0("METHOD", modifiers, returnType, methodName, argDecls, body)
+}
+
+func (this *Parser) Type() *Node {
+    return NewNode2("TYPE", this.QNAME().Text)
+}
+
+var modifiers = map[TokenType]bool {
+    AT:true,
+    PUBLIC:true,
+    PROTECTED: true,
+    STATIC: true,
+    ABSTRACT: true,
+    FINAL: true,
+    NATIVE: true,
+    SYNC: true,
+    TRANSIENT: true,
+    VOLATILE: true,
+    STRICTFP: true,
+}
+
+func (this *Parser) MethodBodyDecl() *Node {
+    // println "methodBodyDecl"
+    this.Match(LCURL);  for this.LA(1)==EOL { this.Match(EOL) }
+    this.Match(RCURL)
+    return NewNode0("METHOD_BODY") // #TODO
+}
+
+func (this *Parser) Modifiers() *Node {
+    m := []*Node{}
+    for _,ok := modifiers[this.LA(1)]; ok; {
+        m = append(m, this.Modifier())
+    }
+    return NewNode1("MODIFIERS", m)
+}
+
+func (this *Parser) Modifier() *Node {
+    switch this.LA(1) {
+        case AT:        return this.Annotation()
+        case PUBLIC:    return NewNode2("PUBLIC",    this.Match(PUBLIC).text   )
+        case PROTECTED: return NewNode2("PROTECTED", this.Match(PROTECTED).text)
+        case STATIC:    return NewNode2("STATIC",    this.Match(STATIC).text   )
+        case ABSTRACT:  return NewNode2("ABSTRACT",  this.Match(ABSTRACT).text )
+        case FINAL:     return NewNode2("FINAL",     this.Match(FINAL).text    )
+        case NATIVE:    return NewNode2("NATIVE",    this.Match(NATIVE).text   )
+        case SYNC:      return NewNode2("SYNC",      this.Match(SYNC).text     )
+        case TRANSIENT: return NewNode2("TRANSIENT", this.Match(TRANSIENT).text)
+        case VOLATILE:  return NewNode2("VOLATILE",  this.Match(VOLATILE).text )
+        case STRICTFP:  return NewNode2("STRICTFP",  this.Match(STRICTFP).text )
+
+        default:
+            panic("expecting a modifier, found #TODO") // ${LT(1)}.
+    }
+    return nil
+}
+
+func (this *Parser) ArgumentDecls() *Node {
+    if this.LA(1) == RPAR { return NewNode0("ARGS") }
+
+    a := []*Node{}
+    a = append(a, this.ArgumentDecl())
+    for this.LA(1) == COMMA {
+        this.Match(COMMA)
+        a = append(a, this.ArgumentDecl())
+    }
+    return NewNode1("ARGS", a)
+}
+
+
+var DEFAULT_TYPE = &Node{Name:"TYPE", Text:"java.lang.Object"}
+
+func (this *Parser) ArgumentDecl() *Node {
+    var annotations *Node = nil
+    if this.LA(1) == AT {
+        annotations = this.Annotations()
+    }
+    argType := DEFAULT_TYPE
+    if this.LA(2) == IDENT {
+        argType = this.Type()
+    }
+    name := this.IDENT()
+    return NewNode0("ARG", argType, name, annotations)
+}
+
+
+func (this *Parser) QNAME() *Node {
     sb := util.NewStringBuffer()
     sb.AppendStr(this.Match(IDENT).text)
     for this.LA(1) == DOT {
         sb.AppendStr(this.Match(DOT).text)
         sb.AppendStr(this.Match(IDENT).text)
-    }    
-    return &ast.Node{Name:"QNAME", Text: sb.String()}
+    }
+    return NewNode2("QNAME", sb.String())
+}
+
+func (this *Parser) QnameForImport() *Node {
+    sb := util.NewStringBuffer()
+    sb.AppendStr(this.Match(IDENT).text)
+    for this.LA(1) == DOT {
+        sb.AppendStr(this.Match(DOT).text)
+        if this.LA(1) == STAR {
+            sb.AppendStr(this.Match(STAR).text)
+        } else {
+            sb.AppendStr(this.Match(IDENT).text)
+        }
+    }
+    return NewNode2("QNAME", sb.String())
+}
+
+func (this *Parser) Annotations() *Node {
+    anns := []*Node{}
+    anns = append(anns, this.Annotation())
+    for this.LA(1) == AT {
+        anns = append(anns, this.Annotation())
+    }
+    return NewNode1("ANNOTATIONS", anns)
+}
+
+// annotation: '@' ident '(' args ')'
+func (this *Parser) Annotation() *Node {
+    this.Match(AT)
+    this.Match(IDENT)
+    if this.LA(1) == LPAR {
+        this.Match(LPAR)
+        // annotationArgs()
+        this.Match(RPAR)
+    }
+    return NewNode0("ANNOTATION" /* #TODO */)
 }

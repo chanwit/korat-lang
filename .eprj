@@ -19,8 +19,16 @@
         </dict>
         <key>fileTriggers</key>
         <dict>
+            <key>No</key>
+            <string>src\ast\node.go</string>
+            <key>no</key>
+            <string>src\ast\node.go</string>
+            <key>node</key>
+            <string>src\ast\node.go</string>
             <key>par</key>
             <string>src\compiler\parser.go</string>
+            <key>toke</key>
+            <string>src\compiler\token.go</string>
         </dict>
     </dict>
 </plist>
