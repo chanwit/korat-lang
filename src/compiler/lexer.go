@@ -167,4 +167,5 @@ func (S *Lexer) EOL() *Token {
 }
 
 func (S *Lexer) error(msg string) {
+    panic(msg)
 }
