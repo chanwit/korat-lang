@@ -101,7 +101,7 @@ var tokens = map[TokenType]string{
 
 func (t TokenType) String() string {
     if str, exists := tokens[t]; exists {
-        return "<" + strconv.Itoa(int(t)) + ", " + str + ">"
+        return "(" + strconv.Itoa(int(t)) + "," + str + ")"
     }
     return "<" + strconv.Itoa(int(t)) + ">"
 }

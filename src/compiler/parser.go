@@ -279,6 +279,9 @@ func (this *Parser) MethodBodyDecl() *Node {
     return NewNode0("METHOD_BODY") // #TODO
 }
 
+// 
+// modifiers: modifier*
+//
 func (this *Parser) Modifiers() *Node {
     m := []*Node{}
     for modifiers[this.LA(1)] == true {
