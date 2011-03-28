@@ -21,6 +21,8 @@
         <dict>
             <key>No</key>
             <string>src\ast\node.go</string>
+            <key>go</key>
+            <string>src\compiler\parser.go</string>
             <key>no</key>
             <string>src\ast\node.go</string>
             <key>node</key>
@@ -28,6 +30,8 @@
             <key>par</key>
             <string>src\compiler\parser.go</string>
             <key>toke</key>
+            <string>src\compiler\token.go</string>
+            <key>token</key>
             <string>src\compiler\token.go</string>
         </dict>
     </dict>

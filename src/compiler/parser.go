@@ -4,7 +4,7 @@ import "container/vector"
 import "util"
 import . "ast"
 
-// import "fmt"
+import "fmt"
 
 const FAILED = -1
 
@@ -75,6 +75,7 @@ func (this *Parser) Match(x TokenType) (t *Token) {
     t = this.LT(1)
     if t.tokenType == x {
         this.Consume()
+        fmt.Printf("matched %s\n", t)
         return
     }
     panic("Token not match. Found:" + t.tokenType.String() + ", Expect: " + tokens[x])
@@ -280,7 +281,9 @@ func (this *Parser) MethodBodyDecl() *Node {
 
 func (this *Parser) Modifiers() *Node {
     m := []*Node{}
-    for _,ok := modifiers[this.LA(1)]; ok; {
+    for {
+        _,ok := modifiers[this.LA(1)]
+        if(!ok) { break }
         m = append(m, this.Modifier())
     }
     return NewNode1("MODIFIERS", m)
@@ -301,7 +304,7 @@ func (this *Parser) Modifier() *Node {
         case STRICTFP:  return NewNode2("STRICTFP",  this.Match(STRICTFP).text )
 
         default:
-            panic("expecting a modifier, found #TODO") // ${LT(1)}.
+            panic("expecting a modifier, found " + this.LA(1).String()) // ${LT(1)}.
     }
     return nil
 }
@@ -368,7 +371,9 @@ func (this *Parser) Annotations() *Node {
     return NewNode1("ANNOTATIONS", anns)
 }
 
+//
 // annotation: '@' ident '(' args ')'
+//
 func (this *Parser) Annotation() *Node {
     this.Match(AT)
     this.Match(IDENT)

@@ -47,3 +47,22 @@ func TestBlankType(t *testing.T) {
         t.Fatalf("A not found")
     }
 }
+
+func TestTypeWithMainMethod(t *testing.T) {
+    lexer  := new(compiler.Lexer).Init("\n"+
+    "class A {\n"             +
+    "   static main(args){\n" +
+    "   }\n"                  +
+    "}\n")
+    parser := new(compiler.Parser).Init(lexer)
+    node   := parser.TypeDecl()
+    if node.Name != "CLASS" {
+        t.Fatalf("CLASS not parsed")
+    }
+    if node.Children[0].Name != "IDENT" {
+        t.Fatalf("IDENT not parsed")
+    }
+    if node.Children[0].Text != "A" {
+        t.Fatalf("A not found")
+    }
+}
