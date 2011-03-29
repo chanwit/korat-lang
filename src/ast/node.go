@@ -27,10 +27,21 @@ func f(nodes []*Node) (r string) {
     return
 }
 
+func (this *Node) At(i int) *Node { return this.Children[i] }
+
+func (this *Node) F(s string) *Node {
+    for i := 0; i < len(this.Children); i++ {        
+        if this.Children[i] != nil && this.Children[i].Name == s {
+            return this.Children[i]
+        }
+    }
+    return nil
+}
+
 func (this *Node) String() string {    
     if(this == nil) { return "<nil>" }
     if len(this.Text) == 0 {
-        if this.Children == nil || len(this.Children) == 0{
+        if this.Children == nil || len(this.Children) == 0 {
             return this.Name
         }
         return this.Name + "(" + f(this.Children) + ")"

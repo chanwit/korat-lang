@@ -23,6 +23,8 @@
             <string>src\ast\node.go</string>
             <key>go</key>
             <string>src\compiler\parser.go</string>
+            <key>n</key>
+            <string>src\ast\node.go</string>
             <key>no</key>
             <string>src\ast\node.go</string>
             <key>node</key>

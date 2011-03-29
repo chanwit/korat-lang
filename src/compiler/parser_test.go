@@ -51,21 +51,26 @@ func TestBlankType(t *testing.T) {
 }
 
 func TestTypeWithMainMethod(t *testing.T) {
-    lexer  := new(compiler.Lexer).Init("\n"+
+    lexer  := new(compiler.Lexer).Init(
+    "\n"                      +
     "class A {\n"             +
     "   static main(args){\n" +
     "   }\n"                  +
-    "}\n")
+    "}\n"                     )
     parser := new(compiler.Parser).Init(lexer)
     node   := parser.TypeDecl()
-    fmt.Printf("%s\n", node)
-    if node.Name != "CLASS" {
-        t.Fatalf("CLASS not parsed")
-    }
-    if node.Children[0].Name != "IDENT" {
+    // if node.String() != "CLASS(IDENT('A'),MEMBERS(METHOD(MODIFIERS(STATIC),<nil>,IDENT('main'),ARGS(ARG(TYPE('java.lang.Object'),IDENT('args'),<nil>)),METHOD_BODY)))" {
+    //            
+    //     t.Fatalf("CLASS not parsed")
+    // }
+    if node.F("IDENT").String() != "IDENT('A')" {
+        fmt.Printf("%s\n", node)
         t.Fatalf("IDENT not parsed")
     }
-    if node.Children[0].Text != "A" {
-        t.Fatalf("A not found")
+    if node.F("MEMBERS").Name != "MEMBERS" {
+        t.Fatalf("MEMBERS not parsed")
+    }
+    if node.F("MEMBERS").At(0).String() != "METHOD(MODIFIERS(STATIC),<nil>,IDENT('main'),ARGS(ARG(TYPE('java.lang.Object'),IDENT('args'),<nil>)),METHOD_BODY)" {
+        t.Fatalf("METHOD not parsed")
     }
 }

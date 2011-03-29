@@ -293,16 +293,16 @@ func (this *Parser) Modifiers() *Node {
 func (this *Parser) Modifier() *Node {
     switch this.LA(1) {
         case AT:        return this.Annotation()
-        case PUBLIC:    return NewNode2("PUBLIC",    this.Match(PUBLIC).text   )
-        case PROTECTED: return NewNode2("PROTECTED", this.Match(PROTECTED).text)
-        case STATIC:    return NewNode2("STATIC",    this.Match(STATIC).text   )
-        case ABSTRACT:  return NewNode2("ABSTRACT",  this.Match(ABSTRACT).text )
-        case FINAL:     return NewNode2("FINAL",     this.Match(FINAL).text    )
-        case NATIVE:    return NewNode2("NATIVE",    this.Match(NATIVE).text   )
-        case SYNC:      return NewNode2("SYNC",      this.Match(SYNC).text     )
-        case TRANSIENT: return NewNode2("TRANSIENT", this.Match(TRANSIENT).text)
-        case VOLATILE:  return NewNode2("VOLATILE",  this.Match(VOLATILE).text )
-        case STRICTFP:  return NewNode2("STRICTFP",  this.Match(STRICTFP).text )
+        case PUBLIC:    this.Match(PUBLIC)    ; return NewNode0("PUBLIC")
+        case PROTECTED: this.Match(PROTECTED) ; return NewNode0("PROTECTED")
+        case STATIC:    this.Match(STATIC)    ; return NewNode0("STATIC") 
+        case ABSTRACT:  this.Match(ABSTRACT)  ; return NewNode0("ABSTRACT")
+        case FINAL:     this.Match(FINAL)     ; return NewNode0("FINAL")  
+        case NATIVE:    this.Match(NATIVE)    ; return NewNode0("NATIVE")
+        case SYNC:      this.Match(SYNC)      ; return NewNode0("SYNC")    
+        case TRANSIENT: this.Match(TRANSIENT) ; return NewNode0("TRANSIENT")
+        case VOLATILE:  this.Match(VOLATILE)  ; return NewNode0("VOLATILE") 
+        case STRICTFP:  this.Match(STRICTFP)  ; return NewNode0("STRICTFP")
 
         default:
             panic("expecting a modifier, found " + this.LA(1).String()) // ${LT(1)}.
