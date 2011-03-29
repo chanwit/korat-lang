@@ -4,6 +4,7 @@ import "testing"
 import "compiler"
 
 import "fmt"
+import . "util"
 
 func TestParsingPackage(t *testing.T) {
     lexer  := new(compiler.Lexer).Init("package a.b.c")
@@ -59,18 +60,21 @@ func TestTypeWithMainMethod(t *testing.T) {
     "}\n"                     )
     parser := new(compiler.Parser).Init(lexer)
     node   := parser.TypeDecl()
-    // if node.String() != "CLASS(IDENT('A'),MEMBERS(METHOD(MODIFIERS(STATIC),<nil>,IDENT('main'),ARGS(ARG(TYPE('java.lang.Object'),IDENT('args'),<nil>)),METHOD_BODY)))" {
-    //            
-    //     t.Fatalf("CLASS not parsed")
-    // }
-    if node.F("IDENT").String() != "IDENT('A')" {
-        fmt.Printf("%s\n", node)
-        t.Fatalf("IDENT not parsed")
-    }
-    if node.F("MEMBERS").Name != "MEMBERS" {
-        t.Fatalf("MEMBERS not parsed")
-    }
-    if node.F("MEMBERS").At(0).String() != "METHOD(MODIFIERS(STATIC),<nil>,IDENT('main'),ARGS(ARG(TYPE('java.lang.Object'),IDENT('args'),<nil>)),METHOD_BODY)" {
+
+    args   := ARGS(ARG(TYPE("java.lang.Object"),IDENT("args"),NIL)) 
+    mainMethod := METHOD(
+            MODIFIERS(STATIC),
+            NIL,
+            IDENT("main"),
+            args,
+            "METHOD_BODY")
+
+    class  := CLASS(IDENT("A"),MEMBERS(mainMethod))
+    fmt.Printf("%s\n", class)
+    if node.String() != class {
+        t.Fatalf("CLASS not parsed")
+    }    
+    if node.F("MEMBERS").At(0).String() != mainMethod {
         t.Fatalf("METHOD not parsed")
     }
 }

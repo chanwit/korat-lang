@@ -26,7 +26,9 @@
             <key>n</key>
             <string>src\ast\node.go</string>
             <key>no</key>
-            <string>src\ast\node.go</string>
+            <string>src\util\node_helper.go</string>
+            <key>nod</key>
+            <string>src\util\node_helper.go</string>
             <key>node</key>
             <string>src\ast\node.go</string>
             <key>par</key>
