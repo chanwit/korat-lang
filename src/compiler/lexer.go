@@ -4,6 +4,8 @@ import "utf8"
 import "strconv"
 import "util"
 
+import "fmt"
+
 const EOF = -1
 
 type Lexer struct {
@@ -95,6 +97,8 @@ func (S *Lexer) NextToken() *Token {
             case '}': S.Consume(); return &Token{tokenType: RCURL,text:"}"}
             case '(': S.Consume(); return &Token{tokenType: LPAR, text:"("}
             case ')': S.Consume(); return &Token{tokenType: RPAR, text:")"}
+            case '[': S.Consume(); return &Token{tokenType: LBRAC,text:"["}
+            case ']': S.Consume(); return &Token{tokenType: RBRAC,text:"]"}
             case '*': S.Consume(); return &Token{tokenType: STAR, text:"*"}
             case ',': S.Consume(); return &Token{tokenType: COMMA,text:","}
             case ':': S.Consume(); return &Token{tokenType: COLON,text:":"}
@@ -102,7 +106,7 @@ func (S *Lexer) NextToken() *Token {
                 if S.isLetter() {
                     return S.KeywordOrIdent()
                 }
-                S.error("invalid character " + strconv.Itoa(S.ch))
+                S.error(fmt.Sprintf("invalid character: '%c' (%d)", S.ch, S.ch))
         }
     }
     return &Token{tokenType:EOF,text:"<EOF>"}

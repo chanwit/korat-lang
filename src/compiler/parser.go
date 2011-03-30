@@ -3,6 +3,7 @@ package compiler
 import "container/vector"
 import "util"
 import . "ast"
+import "strconv"
 
 // import "fmt"
 
@@ -255,7 +256,17 @@ func (this *Parser) MethodDecl() *Node  {
 }
 
 func (this *Parser) Type() *Node {
-    return NewNode2("TYPE", this.QNAME().Text)
+    qname := this.QNAME()
+    dim := 0
+    if this.LA(1) == LBRAC {        
+        this.Match(LBRAC)
+        this.Match(RBRAC)
+        dim++
+    }
+    if dim > 0 {
+        return NewNode3("TYPE", qname.Text, NewNode2("DIM", strconv.Itoa(dim)))
+    } 
+    return NewNode2("TYPE", qname.Text)
 }
 
 var modifiers = map[TokenType]bool {
@@ -331,7 +342,7 @@ func (this *Parser) ArgumentDecl() *Node {
         annotations = this.Annotations()
     }
     argType := DEFAULT_TYPE
-    if this.LA(2) == IDENT {
+    if this.LA(2) == LBRAC || this.LA(2) == IDENT {
         argType = this.Type()
     }
     name := this.IDENT()

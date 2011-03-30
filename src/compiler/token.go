@@ -40,6 +40,7 @@ const (
     IMPORT
     LCURL
     LPAR
+    LBRAC    
     MATCH
     NATIVE
     PACKAGE
@@ -47,8 +48,9 @@ const (
     PUBLIC
     QNAME
     RCURL
-    RETURN
     RPAR
+    RBRAC
+    RETURN
     SEMI
     STAR
     STATIC
@@ -78,6 +80,7 @@ var tokens = map[TokenType]string{
     IMPORT:   "import",
     LCURL:    "{",
     LPAR:     "(",
+    LBRAC:    "[",
     MATCH:    "match",
     NATIVE:   "native",
 
@@ -85,10 +88,11 @@ var tokens = map[TokenType]string{
     PROTECTED: "protected",
     PUBLIC:    "public",
     QNAME:     "<QNAME>",
-    RCURL:     "}",
-
     RETURN: "return",
+    
+    RCURL:     "}",
     RPAR:   ")",
+    RBRAC:  "]",
     SEMI:   ";",
     STAR:   "*",
     STATIC: "static",
