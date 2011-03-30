@@ -8,6 +8,8 @@ const (
 )
 
 func format(tag string, s...string) string {
+    if len(s) == 0 {return tag}
+
     r := s[0]
     for i := 1; i < len(s); i++ {
         r = r + "," + s[i]
