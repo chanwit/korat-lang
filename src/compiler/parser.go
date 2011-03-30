@@ -255,6 +255,9 @@ func (this *Parser) MethodDecl() *Node  {
     return NewNode0("METHOD", modifiers, returnType, methodName, argDecls, body)
 }
 
+//
+// type: qname []*
+//
 func (this *Parser) Type() *Node {
     qname := this.QNAME()
     dim := 0
@@ -316,7 +319,7 @@ func (this *Parser) Modifier() *Node {
         case STRICTFP:  this.Match(STRICTFP)  ; return NewNode0("STRICTFP")
 
         default:
-            panic("expecting a modifier, found " + this.LA(1).String()) // ${LT(1)}.
+            panic("expecting a modifier, found " + this.LA(1).String())
     }
     return nil
 }
@@ -348,7 +351,6 @@ func (this *Parser) ArgumentDecl() *Node {
     name := this.IDENT()
     return NewNode0("ARG", argType, name, annotations)
 }
-
 
 func (this *Parser) QNAME() *Node {
     sb := util.NewStringBuffer()
