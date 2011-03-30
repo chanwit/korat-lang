@@ -3,9 +3,13 @@ package compiler_test
 import "testing"
 import "compiler"
 
+import "os"
 // import "fmt"
 import . "util"
 import "reflect"
+import "strings"
+import "sut/govy"
+import "ast"
 
 func TestParsingPackage(t *testing.T) {
     lexer  := new(compiler.Lexer).Init("package a.b.c")
@@ -72,7 +76,7 @@ func TestTypeWithMainMethod(t *testing.T) {
     }
 }
 
-func InvokeByName(obj interface{}, name string, in...reflect.Value) []reflect.Value {    
+func InvokeByName(obj interface{}, name string, in...reflect.Value) []reflect.Value {
     ov := reflect.NewValue(obj)
     ot := ov.Type()
     var fn *reflect.FuncValue = nil
@@ -93,6 +97,45 @@ func InvokeByName(obj interface{}, name string, in...reflect.Value) []reflect.Va
     return fn.Call(params)
 }
 
+func RunOneFile(filename string, t *testing.T) {
+    f := govy.Open(filename)
+    defer f.Close()
+
+    ruleName,_ := f.NextLine() // TypeDecl:
+    if ruleName[len(ruleName)-1] != ':' {
+        panic("Rule not found")
+    }
+    ruleName = ruleName[0:len(ruleName)-1]
+    // fmt.Printf("%s\n", ruleName)
+    src := ""
+    for {
+        s,_ := f.NextLine()
+        if s == "expect:" {
+            break
+        }
+        src = src + s + "\n"
+    }
+    // fmt.Printf("%s\n", src)
+
+    expect := ""
+    for {
+        s,e := f.NextLine()
+        if e == os.EOF {
+            break
+        }
+        expect = expect + strings.Trim(s, " \n\r\t")
+    }
+    // fmt.Printf("%s\n", expect)
+
+    lexer  := new(compiler.Lexer).Init(src)
+    parser := new(compiler.Parser).Init(lexer)
+    v := InvokeByName(parser, ruleName)
+    node := v[0].Interface().(*ast.Node)
+    if node.String() != expect {
+        t.Fatalf("found:  " + node.String() + "\nexpect: " + expect)
+    }
+}
+
 func TestTypeWithReflection(t *testing.T) {
     lexer  := new(compiler.Lexer).Init(
     "\n"                      +
@@ -102,6 +145,16 @@ func TestTypeWithReflection(t *testing.T) {
     "}\n"                     )
     parser := new(compiler.Parser).Init(lexer)
     InvokeByName(parser, "TypeDecl")
+
+    f,_ := os.Open("./test", os.O_RDONLY, 0666)
+    defer f.Close()
+    n,_ := f.Readdirnames(-1)
+    for i := 0; i < len(n); i++ {
+        if strings.LastIndex(n[i],".kt") != -1 {
+            // fmt.Printf("%s\n", n[i])
+            RunOneFile("./test/" + n[i], t)
+        }
+    }
 }
 
 //func TestTypeWithMainMethodAndMatch(t *testing.T) {
@@ -113,7 +166,7 @@ func TestTypeWithReflection(t *testing.T) {
 //    "       a := Mul(Const())\n"+
 //    "   }\n"                    +
 //    "}\n"                       )
-//    
-//    
-//        
+//
+//
+//
 //}

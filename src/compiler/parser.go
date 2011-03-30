@@ -4,7 +4,7 @@ import "container/vector"
 import "util"
 import . "ast"
 
-import "fmt"
+// import "fmt"
 
 const FAILED = -1
 
@@ -75,7 +75,7 @@ func (this *Parser) Match(x TokenType) (t *Token) {
     t = this.LT(1)
     if t.tokenType == x {
         this.Consume()
-        fmt.Printf("matched %s\n", t)
+        // fmt.Printf("matched %s\n", t)
         return
     }
     panic("Token not match. Found:" + t.tokenType.String() + ", Expect: " + tokens[x])
