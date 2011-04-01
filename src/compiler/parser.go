@@ -261,39 +261,409 @@ func (this *Parser) MethodDecl() *Node  {
 func (this *Parser) Type() *Node {
     qname := this.QNAME()
     dim := 0
-    if this.LA(1) == LBRAC {        
+    if this.LA(1) == LBRAC {
         this.Match(LBRAC)
         this.Match(RBRAC)
         dim++
     }
     if dim > 0 {
         return NewNode3("TYPE", qname.Text, NewNode2("DIM", strconv.Itoa(dim)))
-    } 
+    }
     return NewNode2("TYPE", qname.Text)
 }
 
 var modifiers = map[TokenType]bool {
-    AT:true,
-    PUBLIC:true,
-    PROTECTED: true,
-    STATIC: true,
+    AT:       true,
+    PUBLIC:   true,
+    PROTECTED:true,
+    STATIC:   true,
     ABSTRACT: true,
-    FINAL: true,
-    NATIVE: true,
-    SYNC: true,
-    TRANSIENT: true,
+    FINAL:    true,
+    NATIVE:   true,
+    SYNC:     true,
+    TRANSIENT:true,
     VOLATILE: true,
     STRICTFP: true,
 }
 
+//
+// methodBodyDecl: { blockStatement* }
+//
 func (this *Parser) MethodBodyDecl() *Node {
     // println "methodBodyDecl"
     this.Match(LCURL);  for this.LA(1)==EOL { this.Match(EOL) }
+    blockStmts := []*Node{}
+    for this.LA(1) != RCURL {
+        blockStmts = append(blockStmts, this.BlockStatement())
+        this.semiOrEol()
+    }
     this.Match(RCURL)
-    return NewNode0("METHOD_BODY") // #TODO
+    return NewNode1("METHOD_BODY", blockStmts)
 }
 
-// 
+// blockStatement
+//     :   localVariableDeclarationStatement
+//     |   classOrInterfaceDeclaration
+//     |   statement
+func (this *Parser) BlockStatement() *Node {
+    // a,b
+    if this.LA(1) == IDENT && this.LA(2) == COMMA {
+        return this.MultipleVarDeclStmt()
+    // a :=
+    } else if this.LA(1) == IDENT && this.LA(2) == COLON && this.LA(3) == EQUAL {
+        return this.InferLocalVarDeclStmt()
+    // a =
+    } else if this.LA(1) == IDENT && this.LA(2) == EQUAL {
+        return this.LocalVarDeclStmt()
+    }
+    //return this.Statement()
+    return NewNode0("STMT", this.IDENT())
+}
+
+//
+// a(,b)+ (:)?= expression
+//
+func (this *Parser) MultipleVarDeclStmt() *Node {
+    return NewNode0("STMT", this.IDENT())
+}
+
+func (this *Parser) InferLocalVarDeclStmt() *Node {
+    ident := this.IDENT()
+    this.Match(COLON)
+    this.Match(EQUAL)
+    expr := this.Expression()
+    return NewNode0("INFER_ASSIGN", ident, expr)
+}
+
+func (this *Parser) LocalVarDeclStmt() *Node {
+    ident := this.IDENT()
+    this.Match(EQUAL)
+    expr := this.Expression()
+    return NewNode0("ASSIGN", ident, expr)
+}
+
+// expression
+//     :   conditionalExpression
+//         (assignmentOperator expression
+//         )?
+func (this *Parser) Expression() *Node {
+    c := this.ConditionalExpression()
+    if LA(1) == EQUAL || LA(2) == EQUAL {
+        a := this.AssignmentOperator()
+        e := this.Expression()
+        return NewNode0("EXPR", a, e)
+    }
+    return NewNode0("EXPR", c)
+}
+
+// conditionalExpression
+//     :   conditionalOrExpression
+//         ('?' expression ':' conditionalExpression
+//         )?
+func (this *Parser) ConditionalExpression() *Node {
+    this.ConditionalOrExpression()
+    if this.LA(1) == QUESTION {
+        this.Match(QUESTION)
+        this.Expression()
+        this.Match(COLON)
+        this.ConditionalExpression()
+    }
+    return nil
+}
+
+// conditionalOrExpression
+//     :   conditionalAndExpression
+//         ('||' conditionalAndExpression
+//         )*
+func (this *Parser) ConditionalOrExpression() *Node {
+    this.ConditionalAndExpression()
+    for this.LA(1) == OR && this.LA(2) == OR {
+        this.ConditionalAndExpression()
+    }
+    return nil
+}
+
+// conditionalAndExpression
+//     :   inclusiveOrExpression
+//         ('&&' inclusiveOrExpression
+//         )*
+func (this *Parser) ConditionalAndExpression() *Node {
+    this.InclusiveOrExpression()
+    for this.LA(1) == AND && this.LA(2) == AND {
+        this.InclusiveOrExpression()
+    }
+    return nil
+}
+
+// inclusiveOrExpression
+//     :   exclusiveOrExpression
+//         ('|' exclusiveOrExpression
+//         )*
+func (this *Parser) InclusiveOrExpression() *Node {
+    this.ExclusiveOrExpression()
+    for this.LA(1) == OR {
+        this.ExclusiveOrExpression()
+    }
+    return nil
+}
+
+// exclusiveOrExpression
+//     :   andExpression
+//         ('^' andExpression
+//         )*
+func (this *Parser) ExclusiveOrExpression() *Node {
+    this.AndExpression()
+    for this.LA(1) == XOR {
+        this.AndExpression()
+    }
+    return nil
+}
+
+// andExpression
+//     :   equalityExpression
+//         ('&' equalityExpression
+//         )*
+func (this *Parser) AndExpression() *Node {
+    this.EqualityExpression()
+    for this.LA(1) == AND {
+        this.EqualityExpression()
+    }
+    return nil
+}
+
+// equalityExpression
+//     :   instanceOfExpression
+//         (
+//             (   '=='
+//             |   '!='
+//             )
+//             instanceOfExpression
+//         )*
+func (this *Parser) EqualityExpression() *Node {
+    this.InstanceOfExpression()
+    tok1,tok2 := this.LA(1),this.LA(2)
+    for tok1 == EQUAL || tok1 == NOT {
+        if(tok1 == EQUAL) {
+            this.Match(EQUAL)
+        } else {
+            this.Match(NOT)
+        }
+        this.Match(EQUAL)
+        this.InstanceOfExpression()
+    }
+    return nil
+}
+
+// instanceOfExpression
+//     :   relationalExpression
+//         ('instanceof' type
+//         )?
+func (this *Parser) InstanceOfExpression() *Node {
+    this.RelationalExpression()
+    if this.LA(1) == INSTANCE_OF {
+        this.Match(INSTANCE_OF)
+        this.Type()
+    }
+    return nil
+}
+
+//
+// relationalExpression
+//     :   shiftExpression (relationalOp shiftExpression)*
+//
+func (this *Parser) RelationalExpression() *Node {
+    this.ShiftExpression()
+    for this.LA(1) == LANGLE || this.LA(1)== RANGLE {
+        this.RelationalOp()
+        this.ShiftExpression()
+    }
+    return nil
+}
+
+//
+// relationalOp
+//     :    '<' '='
+//     |    '>' '='
+//     |    '<'
+//     |    '>'
+//
+func (this *Parser) RelationOp() *Node {
+    tok1,tok2 := this.LA(1),this.LA(2)
+    if tok1 == LANGLE {
+        this.Match(LANGLE)
+        if tok2 == EQUAL {
+            this.Match(EQUAL)
+            return NewNode0("LESS_THAN_OR_EQUAL")
+        }
+        return NewNode0("LESS_THAN")
+    } else if tok1 == RANGLE {
+        this.Match(RANGLE)
+        if tok2 == EQUAL {
+            this.Match(EQUAL)
+            return NewNode0("GREATER_THAN_OR_EQUAL")
+        }
+        return NewNode0("GREATER_THAN")
+    }
+    panic("Unreachable code")
+}
+
+// shiftExpression 
+//     :   additiveExpression
+//         (shiftOp additiveExpression
+//         )*
+func (this *Parser) ShiftExpression() *Node {
+    this.AdditiveExpression()
+    for this.LA(1) == LANGLE || this.LA(1)== RANGLE {
+        this.ShiftOp()
+        this.AdditiveExpression()
+    }
+    return nil
+}
+
+// shiftOp 
+//     :    '<' '<'
+//     |    '>' '>' '>'
+//     |    '>' '>'
+func (this *Parser) ShiftOp() *Node {
+    if this.LA(1) == LANGLE {
+        this.Match(LANGLE)
+        this.Match(LANGLE)
+        return NewNode0("SHL")
+    } else {
+        this.Match(RANGLE)
+        this.Match(RANGLE)    
+        return NewNode0("SHR")   
+    }
+    panic("Unreachable code")
+}
+
+// additiveExpression 
+//     :   multiplicativeExpression
+//         (   
+//             (   '+'
+//             |   '-'
+//             )
+//             multiplicativeExpression
+//          )*
+func (this *Parser) AdditiveExpression() *Node {
+    this.MultiplicativeExpression()
+    tok1 := this.LA(1)
+    for tok1 == PLUS || tok1 == MINUS {
+        if tok1 == PLUS { this.Match(PLUS)  }
+        else            { this.Match(MINUS) }        
+        this.MultiplicativeExpression()
+        tok1 = this.LA(1)
+    }
+    return nil
+}
+
+// multiplicativeExpression 
+//     :
+//         unaryExpression
+//         (   
+//             (   '*'
+//             |   '/'
+//             |   '%'
+//             )
+//             unaryExpression
+//         )*
+func (this *Parser) MultiplicativeExpression() *Node {
+    this.UnaryExpression()
+    tok := this.LA(1)
+    for tok == STAR || tok == DIV || tok == PERCENT {
+        if      tok == STAR { this.Match(STAR)    }
+        else if tok == DIV  { this.Match(DIV)     }
+        else                { this.Match(PERCENT) }
+        this.UnaryExpression()
+        tok = this.LA(1)
+    }
+    return nil
+}
+
+// unaryExpression 
+//     :   '+'  unaryExpression
+//     |   '-' unaryExpression
+//     |   '++' unaryExpression
+//     |   '--' unaryExpression
+//     |   unaryExpressionNotPlusMinus
+func (this *Parser) UnaryExpression() *Node {
+    tok1, tok2 := this.LA(1), this.LA(2)
+    if tok1 == PLUS {
+        this.Match(PLUS)
+        if tok2 == PLUS {
+            this.Match(PLUS)
+            return NewNode0("INC", this.UnaryExpression())
+        }
+        return NewNode0("U_PLUS", this.UnaryExpression())
+    } else if tok1 == MINUS {
+        this.Match(MINUS)
+        if tok2 == MINUS {
+            this.Match(MINUS)
+            return NewNode0("DEC", this.UnaryExpression())
+        }
+        return NewNode0("U_MINUS", this.UnaryExpression())
+    } else {
+        return this.UnaryExpressionNotPlusMinus()        
+    }
+    panic("Unreachable code")    
+}
+
+// unaryExpressionNotPlusMinus 
+//     :   '~' unaryExpression
+//     |   '!' unaryExpression
+//     |   castExpression
+//     |   primary (selector)* ('++' | '--')?
+func (this *Parser) UnaryExpressionNotPlusMinus() *Node {
+    tok1,tok2,tok3 := this.LA(1),this.LA(2),this.LA(3)
+    if tok1 == TILD {
+        this.Match(TILD)        
+        return NewNode0("TILD", this.UnaryExpression())
+    } else if tok1 == EXCLAIM {
+        this.Match(EXCLAIM)
+        return NewNode0("EXCLAIM", this.UnaryExpression())                
+    } else if tok1 == LPAR {
+        return this.Primary()        
+    } else {
+        return this.CastExpression()
+    }
+    panic("Unreachable code")    
+}
+
+
+
+// assignmentOperator
+//     :   '='
+//     |   '+='
+//     |   '-='
+//     |   '*='
+//     |   '/='
+//     |   '&='
+//     |   '|='
+//     |   '^='
+//     |   '%='
+//     |    '<' '<' '='
+//     |    '>' '>' '>' '='
+//     |    '>' '>' '='
+//     ;
+func (this *Parser) AssignmentOperator() *Node {
+    t1 := this.LA(1)
+    t2 := this.LA(2)
+    // #TODO
+    switch {
+        case t1 == EQUAL:
+            this.Match(EQUAL)
+            return NewNode0("ASSIGN_OP")
+        case t1 == PLUS && t2 == EQUAL:
+            this.Match(PLUS); this.Match(EQUAL)
+            return NewNode0("PLUS_ASSIGN_OP")
+        case t1 == COLON && t2 == EQUAL:
+            this.Match(COLON); this.Match(EQUAL)
+            return NewNode0("INFER_ASSIGN_OP")
+    }
+    panic("assign op")
+}
+
+//
 // modifiers: modifier*
 //
 func (this *Parser) Modifiers() *Node {
@@ -309,13 +679,13 @@ func (this *Parser) Modifier() *Node {
         case AT:        return this.Annotation()
         case PUBLIC:    this.Match(PUBLIC)    ; return NewNode0("PUBLIC")
         case PROTECTED: this.Match(PROTECTED) ; return NewNode0("PROTECTED")
-        case STATIC:    this.Match(STATIC)    ; return NewNode0("STATIC") 
+        case STATIC:    this.Match(STATIC)    ; return NewNode0("STATIC")
         case ABSTRACT:  this.Match(ABSTRACT)  ; return NewNode0("ABSTRACT")
-        case FINAL:     this.Match(FINAL)     ; return NewNode0("FINAL")  
+        case FINAL:     this.Match(FINAL)     ; return NewNode0("FINAL")
         case NATIVE:    this.Match(NATIVE)    ; return NewNode0("NATIVE")
-        case SYNC:      this.Match(SYNC)      ; return NewNode0("SYNC")    
+        case SYNC:      this.Match(SYNC)      ; return NewNode0("SYNC")
         case TRANSIENT: this.Match(TRANSIENT) ; return NewNode0("TRANSIENT")
-        case VOLATILE:  this.Match(VOLATILE)  ; return NewNode0("VOLATILE") 
+        case VOLATILE:  this.Match(VOLATILE)  ; return NewNode0("VOLATILE")
         case STRICTFP:  this.Match(STRICTFP)  ; return NewNode0("STRICTFP")
 
         default:
