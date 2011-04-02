@@ -102,6 +102,11 @@ func (S *Lexer) NextToken() *Token {
             case '*': S.Consume(); return &Token{tokenType: STAR, text:"*"}
             case ',': S.Consume(); return &Token{tokenType: COMMA,text:","}
             case ':': S.Consume(); return &Token{tokenType: COLON,text:":"}
+            case '?': S.Consume(); return &Token{tokenType: QUESTION,text:"?"}
+            case '|': S.Consume(); return &Token{tokenType: OR,   text:"|"}
+            case '&': S.Consume(); return &Token{tokenType: AND,  text:"&"}
+            case '^': S.Consume(); return &Token{tokenType: XOR,  text:"^"}
+            case '!': S.Consume(); return &Token{tokenType: NOT,  text:"!"}
             default:
                 if S.isLetter() {
                     return S.KeywordOrIdent()

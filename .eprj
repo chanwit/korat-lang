@@ -21,8 +21,12 @@
         <dict>
             <key>No</key>
             <string>src\ast\node.go</string>
+            <key>admincontro</key>
+            <string>..\grails66\grails-app\controllers\grails66\AdminController.groovy</string>
             <key>go</key>
             <string>src\compiler\parser.go</string>
+            <key>lex</key>
+            <string>src\compiler\lexer.go</string>
             <key>n</key>
             <string>src\ast\node.go</string>
             <key>no</key>

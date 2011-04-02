@@ -9,12 +9,24 @@ import "strconv"
 
 const FAILED = -1
 
+type Error string
+var (
+    NoErr = Error("Successful")
+    ErrRecognition  = Error("Recognition Error")
+    ErrNoViableRule = Error("No viable rule")
+    ErrParseFailed  = Error("Parse failed")
+)
+func (e Error) String() {
+    return string(e)
+}
+
 type Parser struct {
     input     *Lexer
     lookahead *vector.Vector
     markers   *vector.Vector
-    listMemo  map[int]*int
     p         int
+
+    listMemo  map[int]int
 }
 
 func (this *Parser) Init(input *Lexer) *Parser {
@@ -36,7 +48,7 @@ func (this *Parser) Consume() {
 }
 
 func (this *Parser) clearMemo() {
-    this.listMemo = map[int]*int{};
+    this.listMemo = map[int]int{};
 }
 
 func (this *Parser) sync(i int) {
@@ -101,19 +113,31 @@ func (this *Parser) IsSpeculating() bool {
     return this.markers.Len() > 0
 }
 
-func (this *Parser) AlreadyParsedRule(memoization map[int]*int) bool {
-    memoI := memoization[this.Index()]
-    if memoI == nil {
+func (this *Parser) AlreadyParsedRule(memoization map[int]int) bool {
+    memoI,ok := memoization[this.Index()]
+    if ok == false {
         return false
     }
-    if *memoI == FAILED {
-        panic("*memoI == FAILED")
+    if memoI == FAILED {
+        panic(ErrParseFailed)
     }
-    this.Seek(*memoI)
+    this.Seek(memoI)
     return true
 }
 
 func (this *Parser) Index() int { return this.p }
+
+func (this *Parser) Memoize(memoization map[int]int, 
+                            startTokenIndex int,
+                            failed bool) {
+    var stopTokenIndex int
+    if failed {
+        stopTokenIndex = FAILED
+    } else {
+        stopTokenIndex = this.Index()
+    }
+    memoization[startTokenIndex] = stopTokenIndex
+}
 
 //
 // Production Rules
@@ -348,7 +372,7 @@ func (this *Parser) LocalVarDeclStmt() *Node {
 //         )?
 func (this *Parser) Expression() *Node {
     c := this.ConditionalExpression()
-    if LA(1) == EQUAL || LA(2) == EQUAL {
+    if this.LA(1) == EQUAL || this.LA(2) == EQUAL {
         a := this.AssignmentOperator()
         e := this.Expression()
         return NewNode0("EXPR", a, e)
@@ -441,7 +465,7 @@ func (this *Parser) AndExpression() *Node {
 //         )*
 func (this *Parser) EqualityExpression() *Node {
     this.InstanceOfExpression()
-    tok1,tok2 := this.LA(1),this.LA(2)
+    tok1 := this.LA(1)
     for tok1 == EQUAL || tok1 == NOT {
         if(tok1 == EQUAL) {
             this.Match(EQUAL)
@@ -487,7 +511,7 @@ func (this *Parser) RelationalExpression() *Node {
 //     |    '<'
 //     |    '>'
 //
-func (this *Parser) RelationOp() *Node {
+func (this *Parser) RelationalOp() *Node {
     tok1,tok2 := this.LA(1),this.LA(2)
     if tok1 == LANGLE {
         this.Match(LANGLE)
@@ -549,8 +573,11 @@ func (this *Parser) AdditiveExpression() *Node {
     this.MultiplicativeExpression()
     tok1 := this.LA(1)
     for tok1 == PLUS || tok1 == MINUS {
-        if tok1 == PLUS { this.Match(PLUS)  }
-        else            { this.Match(MINUS) }        
+        if tok1 == PLUS {
+            this.Match(PLUS)  
+        } else {
+            this.Match(MINUS)
+        }
         this.MultiplicativeExpression()
         tok1 = this.LA(1)
     }
@@ -571,9 +598,13 @@ func (this *Parser) MultiplicativeExpression() *Node {
     this.UnaryExpression()
     tok := this.LA(1)
     for tok == STAR || tok == DIV || tok == PERCENT {
-        if      tok == STAR { this.Match(STAR)    }
-        else if tok == DIV  { this.Match(DIV)     }
-        else                { this.Match(PERCENT) }
+        if tok == STAR {
+            this.Match(STAR)
+        } else if tok == DIV {
+            this.Match(DIV)
+        } else {
+            this.Match(PERCENT)
+        }
         this.UnaryExpression()
         tok = this.LA(1)
     }
@@ -608,19 +639,23 @@ func (this *Parser) UnaryExpression() *Node {
     panic("Unreachable code")    
 }
 
+func (this *Parser) _UnaryExpressionNotPlusMinus() *Node {
+}
+
 // unaryExpressionNotPlusMinus 
 //     :   '~' unaryExpression
 //     |   '!' unaryExpression
 //     |   castExpression
 //     |   primary (selector)* ('++' | '--')?
 func (this *Parser) UnaryExpressionNotPlusMinus() *Node {
-    tok1,tok2,tok3 := this.LA(1),this.LA(2),this.LA(3)
+    tok1 := this.LA(1)
+    //,tok2,tok3 := this.LA(1),this.LA(2),this.LA(3)
     if tok1 == TILD {
         this.Match(TILD)        
         return NewNode0("TILD", this.UnaryExpression())
-    } else if tok1 == EXCLAIM {
-        this.Match(EXCLAIM)
-        return NewNode0("EXCLAIM", this.UnaryExpression())                
+    } else if tok1 == NOT {
+        this.Match(NOT)
+        return NewNode0("NOT", this.UnaryExpression())                
     } else if tok1 == LPAR {
         return this.Primary()        
     } else {
