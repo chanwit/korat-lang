@@ -7,7 +7,17 @@ SUT Korat Compiler
 This program is written in the Go language.
 GODAG is required to build the project.
 
-To build the project, use the following command:
+Install GODAG
+=============
+
+
+Build Korat
+===========
+
+Clone source from Gituhb:
+$ git clone git://github.com/chanwit/korat-lang.git
+
+To build, use the following command:
 $ gd
 
 Unit testing may be run with the following command:
