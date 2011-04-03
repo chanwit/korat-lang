@@ -7,10 +7,12 @@
             <key>excludeDirs</key>
             <array>
                 <string>.git</string>
+                <string>tmp*</string>
             </array>
             <key>excludeFiles</key>
             <array>
                 <string>*.8</string>
+                <string></string>
             </array>
             <key>includeDirs</key>
             <array />
@@ -25,6 +27,8 @@
             <string>..\grails66\grails-app\controllers\grails66\AdminController.groovy</string>
             <key>go</key>
             <string>src\compiler\parser.go</string>
+            <key>le</key>
+            <string>src\compiler\lexer.go</string>
             <key>lex</key>
             <string>src\compiler\lexer.go</string>
             <key>n</key>
@@ -36,6 +40,8 @@
             <key>node</key>
             <string>src\ast\node.go</string>
             <key>par</key>
+            <string>src\compiler\parser.go</string>
+            <key>parser</key>
             <string>src\compiler\parser.go</string>
             <key>toke</key>
             <string>src\compiler\token.go</string>

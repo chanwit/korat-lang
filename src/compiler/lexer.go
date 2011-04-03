@@ -107,6 +107,7 @@ func (S *Lexer) NextToken() *Token {
             case '&': S.Consume(); return &Token{tokenType: AND,  text:"&"}
             case '^': S.Consume(); return &Token{tokenType: XOR,  text:"^"}
             case '!': S.Consume(); return &Token{tokenType: NOT,  text:"!"}
+        	case '=': S.Consume(); return &Token{tokenType: EQUAL,text:"="}
             default:
                 if S.isLetter() {
                     return S.KeywordOrIdent()

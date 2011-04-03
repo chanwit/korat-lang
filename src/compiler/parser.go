@@ -16,7 +16,8 @@ var (
     ErrNoViableRule = Error("No viable rule")
     ErrParseFailed  = Error("Parse failed")
 )
-func (e Error) String() {
+
+func (e Error) String() string {
     return string(e)
 }
 
@@ -319,7 +320,9 @@ func (this *Parser) MethodBodyDecl() *Node {
     blockStmts := []*Node{}
     for this.LA(1) != RCURL {
         blockStmts = append(blockStmts, this.BlockStatement())
-        this.semiOrEol()
+        for this.LA(1)==SEMI || this.LA(1)==EOL {
+        	this.semiOrEol()
+    	}
     }
     this.Match(RCURL)
     return NewNode1("METHOD_BODY", blockStmts)
@@ -640,6 +643,7 @@ func (this *Parser) UnaryExpression() *Node {
 }
 
 func (this *Parser) _UnaryExpressionNotPlusMinus() *Node {
+	return nil
 }
 
 // unaryExpressionNotPlusMinus 
@@ -664,7 +668,13 @@ func (this *Parser) UnaryExpressionNotPlusMinus() *Node {
     panic("Unreachable code")    
 }
 
+func (this *Parser) Primary() *Node {
+	return nil
+}
 
+func (this *Parser) CastExpression() *Node {
+	return nil
+}
 
 // assignmentOperator
 //     :   '='
